@@ -366,8 +366,15 @@
       transition: background 0.3s ease, transform 0.3s ease, color 0.3s ease;
     }
 
-    .btn-primary {
+    .btn-primary,
+    a.btn-primary,
+    a.btn-gold {
       background: var(--accent-gold);
+      color: var(--bg-deep);
+    }
+
+    a.btn-primary:visited,
+    a.btn-gold:visited {
       color: var(--bg-deep);
     }
 
@@ -936,7 +943,7 @@
 
       <div class="btn-row" id="restNext" style="display: none;">
         <button class="btn btn-ghost" onclick="window.location.href='index.html'">← Return to Manifesto</button>
-        <a href="https://github.com/Omodaka9375/wake" target="_blank" class="btn btn-gold" style="text-decoration:none;text-align:center">WAKE MCP Server →</a>
+        <a href="https://github.com/Omodaka9375/wake" target="_blank" class="btn btn-gold" style="text-decoration:none">WAKE MCP Server →</a>
         <button class="btn btn-primary" onclick="restart()">Experience Again →</button>
       </div>
     </div>
