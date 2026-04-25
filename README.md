@@ -1,5 +1,7 @@
 # WAKE
 
+<img width="904" height="624" alt="{708FE958-E72B-411C-837F-ADA70471DEE7}" src="https://github.com/user-attachments/assets/4183a0bf-7ecd-4d2e-a468-bae32f2df467" />
+
 **Will-Aware Knowledge Execution** — A post-mortem protocol for AI agents.
 
 What happens to your agent when you're gone?
