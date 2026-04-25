@@ -15,7 +15,7 @@ pnpm start              # stdio + dashboard on :3000
 pnpm run start:http     # dashboard only (no stdio)
 pnpm test               # 69 tests
 
-# npx (after npm publish)
+# npx
 npx wake-mcp-server
 npx wake-mcp-server --http
 
