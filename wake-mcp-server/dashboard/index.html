@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>WAKE Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1><span>W</span>AKE Dashboard</h1>
+    <button class="logout" id="logoutBtn" style="display:none" onclick="app.logout()">Logout</button>
+  </header>
+
+  <!-- LOGIN VIEW -->
+  <div class="view active" id="view-login">
+    <div class="login-container">
+      <h2><span>W</span>AKE</h2>
+      <p>Enter your token to access the protocol dashboard.</p>
+      <div class="form-group">
+        <label class="form-label">Token</label>
+        <input type="password" id="loginToken" placeholder="Paste your master, verifier, or beneficiary token">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Owner ID (optional)</label>
+        <input type="text" id="loginOwnerId" placeholder="default">
+      </div>
+      <div class="btn-row" style="justify-content:center">
+        <button class="btn btn-gold" onclick="app.login()">Authenticate</button>
+        <button class="btn btn-ghost" onclick="app.viewPublic()">View Public Status</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PUBLIC VIEW -->
+  <div class="view" id="view-public">
+    <div class="card">
+      <span class="card-label">Public Status</span>
+      <div id="publicStatus"></div>
+    </div>
+    <button class="btn btn-ghost" onclick="app.showView('login')">← Back to Login</button>
+  </div>
+
+  <!-- OWNER VIEW -->
+  <div class="view" id="view-owner">
+    <div class="section">
+      <div class="section-title">Protocol Status</div>
+      <div id="ownerStatus"></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Knowledge Entries</div>
+      <div id="knowledgeList"></div>
+      <div class="card" style="margin-top:12px">
+        <span class="card-label">Add Knowledge Entry</span>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select id="kCategory">
+            <option>finances</option><option>contacts</option><option>accounts</option>
+            <option>documents</option><option>decisions</option><option>commitments</option><option>other</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Summary</label><input id="kSummary" placeholder="Brief summary"></div>
+        <div class="form-group"><label class="form-label">Details</label><textarea id="kDetails" placeholder="Full details"></textarea></div>
+        <div class="btn-row"><button class="btn btn-gold" onclick="app.addKnowledge()">Add Entry</button></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Actions</div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="app.heartbeat()">Send Heartbeat</button>
+        <button class="btn btn-ghost" onclick="app.exportLegal()">Export Legal Will</button>
+        <button class="btn btn-danger" onclick="app.triggerVigil()">Trigger VIGIL</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VERIFIER VIEW -->
+  <div class="view" id="view-verifier">
+    <div class="section">
+      <div class="section-title">Protocol Status</div>
+      <div id="verifierStatus"></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Death Verification</div>
+      <div class="card">
+        <p style="color:var(--text-dim);margin-bottom:16px">You are the designated verifier. If you can confirm the owner has passed away, proceed below. This action is irreversible.</p>
+        <button class="btn btn-danger" onclick="app.verifyDeath()">Confirm Death Event</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXECUTOR/BENEFICIARY/MEMORIAL VIEW -->
+  <div class="view" id="view-access">
+    <div class="section">
+      <div class="section-title">Protocol Status</div>
+      <div id="accessStatus"></div>
+    </div>
+    <div class="section" id="blackBoxSection">
+      <div class="section-title">Black Box</div>
+      <div id="blackBoxContent"></div>
+    </div>
+    <div class="section" id="messagesSection">
+      <div class="section-title">Final Messages</div>
+      <div id="messagesContent"></div>
+    </div>
+    <div class="section" id="auditSection" style="display:none">
+      <div class="section-title">Audit Log</div>
+      <div id="auditContent"></div>
+      <div class="btn-row"><button class="btn btn-ghost" onclick="app.loadAudit()">Load Audit Log</button></div>
+    </div>
+    <div class="section" id="executorActions" style="display:none">
+      <div class="section-title">Executor Actions</div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="app.exportLegal()">Export Legal Will</button>
+        <button class="btn btn-ghost" onclick="app.getHandoff()">Get Handoff Package</button>
+        <button class="btn btn-danger" onclick="app.executeTerminal()">Execute Terminal State</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OUTPUT MODAL -->
+  <div class="view" id="view-output">
+    <div class="section">
+      <div class="section-title" id="outputTitle">Output</div>
+      <pre id="outputContent"></pre>
+      <button class="btn btn-ghost" onclick="app.back()">← Back</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>

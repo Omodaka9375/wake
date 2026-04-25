@@ -1,0 +1,8 @@
+node_modules/
+build/
+data/
+*.db
+*.db-wal
+*.db-shm
+.server-key
+deletion-certificate-*.json

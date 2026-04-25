@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WAKE — Experience the Protocol</title>
+  <meta name="description" content="An interactive simulation of the WAKE post-mortem agent protocol." />
+  <meta name="color-scheme" content="dark" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap"
+    rel="stylesheet" />
+
+  <style>
+    /* ================================================================
+       CONFIGURATION
+       ================================================================ */
+    :root {
+      --bg-deep: #060606;
+      --bg-section: #0a0908;
+      --bg-card: #111110;
+      --bg-input: #0e0e0d;
+      --text-primary: #e8e0d4;
+      --text-secondary: #8a8478;
+      --text-dim: #4a463f;
+      --accent-gold: #c9a84c;
+      --accent-amber: #d4a03c;
+      --phase-vigil: #c9a84c;
+      --phase-eulogy: #e8e0d4;
+      --phase-rest: #6b7b8d;
+      --border-subtle: #1a1918;
+      --border-focus: #c9a84c;
+      --danger: #8b3a3a;
+      --success: #3a6b4a;
+
+      --font-display: 'Instrument Serif', Georgia, serif;
+      --font-body: 'IBM Plex Mono', 'Courier New', monospace;
+      --font-label: 'Syne', 'Helvetica Neue', sans-serif;
+
+      --content-max: 720px;
+      --transition-speed: 0.6s;
+      --transition-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* ================================================================
+       RESET & BASE
+       ================================================================ */
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background: var(--bg-deep);
+    }
+
+    body {
+      opacity: 0;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-weight: 300;
+      font-size: 15px;
+      line-height: 1.75;
+      overflow-x: hidden;
+      min-height: 100vh;
+      transition: opacity 0.4s ease;
+    }
+
+    body.loaded {
+      opacity: 1;
+    }
+
+    ::selection {
+      background: var(--accent-gold);
+      color: var(--bg-deep);
+    }
+
+    /* Grain */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 256px;
+    }
+
+    /* ================================================================
+       TYPOGRAPHY
+       ================================================================ */
+    h1,
+    h2,
+    h3 {
+      font-family: var(--font-display);
+      font-weight: 400;
+      line-height: 1.15;
+    }
+
+    .label {
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent-gold);
+    }
+
+    /* ================================================================
+       NAV BAR
+       ================================================================ */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px clamp(24px, 5vw, 60px);
+      background: rgba(6, 6, 6, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 20px;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+
+    .nav-logo span {
+      color: var(--accent-gold);
+    }
+
+    .nav-back {
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .nav-back:hover {
+      color: var(--accent-gold);
+    }
+
+    /* ================================================================
+       PROGRESS BAR
+       ================================================================ */
+    .progress-bar {
+      position: fixed;
+      top: 61px;
+      left: 0;
+      right: 0;
+      z-index: 99;
+      height: 2px;
+      background: var(--border-subtle);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent-gold);
+      width: 0%;
+      transition: width 0.8s var(--transition-ease);
+    }
+
+    /* ================================================================
+       STEP SYSTEM
+       ================================================================ */
+    .step-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: clamp(120px, 18vh, 200px) clamp(24px, 5vw, 60px) 60px;
+    }
+
+    .step {
+      max-width: var(--content-max);
+      width: 100%;
+      opacity: 0;
+      transform: translateY(30px);
+      transition:
+        opacity var(--transition-speed) var(--transition-ease),
+        transform var(--transition-speed) var(--transition-ease);
+      display: none;
+    }
+
+    .step.active {
+      display: block;
+    }
+
+    .step.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .step-label {
+      margin-bottom: 12px;
+    }
+
+    .step h2 {
+      font-size: clamp(28px, 4vw, 48px);
+      margin-bottom: 16px;
+    }
+
+    .step h2 em {
+      font-style: italic;
+      color: var(--accent-gold);
+    }
+
+    .step-description {
+      color: var(--text-secondary);
+      margin-bottom: 40px;
+      max-width: 560px;
+    }
+
+    /* ================================================================
+       FORM ELEMENTS
+       ================================================================ */
+    .form-group {
+      margin-bottom: 28px;
+    }
+
+    .form-label {
+      display: block;
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .form-input,
+    .form-textarea,
+    .form-select {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 300;
+      padding: 14px 16px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    .form-input:focus,
+    .form-textarea:focus,
+    .form-select:focus {
+      border-color: var(--border-focus);
+    }
+
+    .form-input::placeholder,
+    .form-textarea::placeholder {
+      color: var(--text-dim);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .form-select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238a8478' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      padding-right: 44px;
+    }
+
+    .form-select option {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* Checkbox group */
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-secondary);
+      transition: color 0.2s;
+    }
+
+    .checkbox-label:hover {
+      color: var(--text-primary);
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-input);
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .checkbox-label input[type="checkbox"]:checked {
+      border-color: var(--accent-gold);
+      background: var(--accent-gold);
+    }
+
+    .checkbox-label input[type="checkbox"]:checked::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 11px;
+      color: var(--bg-deep);
+      font-weight: bold;
+    }
+
+    /* ================================================================
+       BUTTONS
+       ================================================================ */
+    .btn {
+      display: inline-block;
+      font-family: var(--font-label);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 16px 40px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.3s ease, color 0.3s ease;
+    }
+
+    .btn-primary {
+      background: var(--accent-gold);
+      color: var(--bg-deep);
+    }
+
+    .btn-primary:hover {
+      background: var(--text-primary);
+      transform: translateY(-2px);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--accent-gold);
+      color: var(--accent-gold);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 16px;
+      margin-top: 40px;
+      flex-wrap: wrap;
+    }
+
+    /* ================================================================
+       TRANSITION SCREEN — the dramatic "time skip"
+       ================================================================ */
+    .transition-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: var(--bg-deep);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .transition-overlay.active {
+      visibility: visible;
+      pointer-events: all;
+    }
+
+    .transition-overlay h2 {
+      font-size: clamp(24px, 4vw, 48px);
+      margin-bottom: 16px;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .transition-overlay.reveal-text h2 {
+      opacity: 1;
+      transition: opacity 0.8s var(--transition-ease);
+    }
+
+    .transition-overlay p {
+      color: var(--text-secondary);
+      max-width: 480px;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .transition-overlay.reveal-text p {
+      opacity: 1;
+      transition: opacity 0.8s var(--transition-ease) 0.25s;
+    }
+
+    /* ================================================================
+       VIGIL CONSOLE — simulated agent activity
+       ================================================================ */
+    .console {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: 24px;
+      font-size: 13px;
+      line-height: 1.8;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-bottom: 32px;
+    }
+
+    .console-line {
+      opacity: 0;
+      transform: translateX(-10px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .console-line.shown {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .console-line .timestamp {
+      color: var(--text-dim);
+      margin-right: 12px;
+    }
+
+    .console-line .status {
+      color: var(--text-secondary);
+    }
+
+    .console-line .status--warn {
+      color: var(--phase-vigil);
+    }
+
+    .console-line .status--success {
+      color: var(--success);
+    }
+
+    .console-line .status--critical {
+      color: var(--danger);
+    }
+
+    .console-line .status--info {
+      color: var(--phase-rest);
+    }
+
+    /* ================================================================
+       AUTO-ADVANCE MESSAGE
+       ================================================================ */
+    .auto-advance {
+      margin-top: 32px;
+      padding: 16px 0;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+
+    .auto-advance.shown {
+      opacity: 1;
+    }
+
+    .console-cursor {
+      display: inline-block;
+      width: 8px;
+      height: 16px;
+      background: var(--accent-gold);
+      margin-left: 4px;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      50% {
+        opacity: 1;
+      }
+
+      51%,
+      100% {
+        opacity: 0;
+      }
+    }
+
+    /* ================================================================
+       EULOGY — Results display
+       ================================================================ */
+    .result-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: 28px;
+      margin-bottom: 20px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s var(--transition-ease), transform 0.6s var(--transition-ease);
+    }
+
+    .result-card.shown {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .result-card .card-label {
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent-gold);
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .result-card h4 {
+      font-family: var(--font-display);
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+
+    .result-card p {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .result-card .message-text {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 18px;
+      color: var(--text-primary);
+      line-height: 1.6;
+      padding: 20px 0;
+      border-top: 1px solid var(--border-subtle);
+      margin-top: 12px;
+    }
+
+    .redacted {
+      background: var(--text-dim);
+      color: transparent;
+      user-select: none;
+      padding: 2px 8px;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+    }
+
+    /* Black Box items */
+    .blackbox-item {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 16px;
+      font-size: 13px;
+    }
+
+    .blackbox-item:last-child {
+      border-bottom: none;
+    }
+
+    .blackbox-key {
+      color: var(--text-dim);
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding-top: 2px;
+    }
+
+    .blackbox-value {
+      color: var(--text-secondary);
+    }
+
+    /* Access tier badge */
+    .tier-badge {
+      display: inline-block;
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border: 1px solid;
+    }
+
+    .tier-badge--executor {
+      color: var(--accent-gold);
+      border-color: var(--accent-gold);
+    }
+
+    .tier-badge--beneficiary {
+      color: var(--phase-eulogy);
+      border-color: var(--phase-eulogy);
+    }
+
+    .tier-badge--memorial {
+      color: var(--phase-rest);
+      border-color: var(--phase-rest);
+    }
+
+    /* ================================================================
+       REST — Terminal state
+       ================================================================ */
+    .terminal-state {
+      text-align: center;
+      padding: 60px 0;
+    }
+
+    .terminal-state .state-icon {
+      font-size: 48px;
+      margin-bottom: 24px;
+      display: block;
+    }
+
+    .terminal-state h3 {
+      font-size: clamp(24px, 3vw, 36px);
+      margin-bottom: 12px;
+    }
+
+    .terminal-state p {
+      color: var(--text-secondary);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* Fade-out effect for delete */
+    .fade-away {
+      animation: fade-dissolve 3s ease forwards;
+    }
+
+    @keyframes fade-dissolve {
+      0% {
+        opacity: 1;
+        filter: blur(0);
+      }
+
+      70% {
+        opacity: 0.3;
+        filter: blur(2px);
+      }
+
+      100% {
+        opacity: 0.05;
+        filter: blur(6px);
+      }
+    }
+
+    /* ================================================================
+       RESPONSIVE
+       ================================================================ */
+    @media (max-width: 640px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .blackbox-item {
+        grid-template-columns: 1fr;
+        gap: 4px;
+      }
+
+      .btn-row {
+        flex-direction: column;
+      }
+
+      .btn {
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <a href="index.html" class="nav-logo"><span>W</span>AKE</a>
+    <a href="index.html" class="nav-back">← Back to Manifesto</a>
+  </nav>
+
+  <!-- PROGRESS -->
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <!-- TRANSITION OVERLAY -->
+  <div class="transition-overlay" id="transitionOverlay">
+    <h2 id="transitionTitle"></h2>
+    <p id="transitionText"></p>
+  </div>
+
+  <!-- ============================================================
+       STEP CONTAINER
+       ============================================================ -->
+  <div class="step-container">
+
+    <!-- ========== STEP 0: INTRO ========== -->
+    <div class="step active" id="step-0">
+      <span class="label step-label">Interactive Simulation</span>
+      <h2>Experience <em>WAKE</em></h2>
+      <p class="step-description">
+        You'll configure a WAKE Will as an agent owner — then witness
+        the protocol execute from the perspective of your beneficiary.
+        This is what your agent does when you're gone.
+      </p>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="goToStep(1)">Begin Configuration →</button>
+      </div>
+    </div>
+
+    <!-- ========== STEP 1: IDENTITY ========== -->
+    <div class="step" id="step-1">
+      <span class="label step-label">WAKE Will — Identity</span>
+      <h2>Who are <em>you</em>?</h2>
+      <p class="step-description">
+        Your agent needs to know who it's acting on behalf of.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label" for="ownerName">Your Name</label>
+        <input class="form-input" type="text" id="ownerName" placeholder="Alex Chen" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="agentName">Your Agent's Name</label>
+        <input class="form-input" type="text" id="agentName" placeholder="ARIA" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="inactivityThreshold">Inactivity Threshold</label>
+        <select class="form-select" id="inactivityThreshold">
+          <option value="72h">72 hours — High-frequency user</option>
+          <option value="7d" selected>7 days — Standard</option>
+          <option value="30d">30 days — Casual user</option>
+        </select>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="goToStep(0)">← Back</button>
+        <button class="btn btn-primary" onclick="goToStep(2)">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== STEP 2: BENEFICIARIES ========== -->
+    <div class="step" id="step-2">
+      <span class="label step-label">WAKE Will — Beneficiaries</span>
+      <h2>Who gets <em>access</em>?</h2>
+      <p class="step-description">
+        Define who receives access to your agent's knowledge, and at what tier.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Executor — Full Operational Access</label>
+        <input class="form-input" type="text" id="executorName" placeholder="Jordan Chen (spouse)" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Beneficiary — Scoped Query Access</label>
+        <input class="form-input" type="text" id="beneficiaryName" placeholder="Sam Chen (sibling)" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Memorial — Curated Read-Only</label>
+        <input class="form-input" type="text" id="memorialName" placeholder="Riley Chen (child)" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Death Event Verifier</label>
+        <input class="form-input" type="text" id="verifierName" placeholder="Jordan Chen (spouse)" />
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="goToStep(1)">← Back</button>
+        <button class="btn btn-primary" onclick="goToStep(3)">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== STEP 3: REDACTIONS & DIRECTIVES ========== -->
+    <div class="step" id="step-3">
+      <span class="label step-label">WAKE Will — Protections</span>
+      <h2>What stays <em>private</em>?</h2>
+      <p class="step-description">
+        Choose categories of memory your agent should purge before any handoff occurs.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Redaction Rules</label>
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="redactMedical" checked /> Medical conversations
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="redactDating" /> Dating & romantic context
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="redactFinancial" /> Private financial discussions
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="redactTherapy" checked /> Therapy & mental health
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="redactCreative" /> Unpublished creative work
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="gracePeriod">Grace Period Duration</label>
+        <select class="form-select" id="gracePeriod">
+          <option value="30">30 days</option>
+          <option value="90" selected>90 days</option>
+          <option value="180">180 days</option>
+          <option value="365">1 year</option>
+        </select>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="goToStep(2)">← Back</button>
+        <button class="btn btn-primary" onclick="goToStep(4)">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== STEP 4: FINAL MESSAGE & TERMINAL STATE ========== -->
+    <div class="step" id="step-4">
+      <span class="label step-label">WAKE Will — Final Acts</span>
+      <h2>Your last <em>words</em></h2>
+      <p class="step-description">
+        A message your agent will deliver to your executor after your death is confirmed.
+        And your choice: what becomes of your agent when it's all done.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label" for="finalMessage">Final Message to Executor</label>
+        <textarea class="form-textarea" id="finalMessage"
+          placeholder="Write something. Your agent will deliver this when the time comes."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="terminalState">Terminal State</label>
+        <select class="form-select" id="terminalState">
+          <option value="archive">Archive — Preserve everything, encrypted</option>
+          <option value="distill" selected>Distill — Extract knowledge, purge memory</option>
+          <option value="delete">Delete — Complete termination</option>
+        </select>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="goToStep(3)">← Back</button>
+        <button class="btn btn-primary" onclick="confirmWill()">Seal the WAKE Will →</button>
+      </div>
+    </div>
+
+    <!-- ========== STEP 5: VIGIL ========== -->
+    <div class="step" id="step-5">
+      <span class="label step-label" style="color: var(--phase-vigil);">Phase One — Vigil</span>
+      <h2>The agent <em>watches</em></h2>
+      <p class="step-description">
+        You are now seeing your agent's internal log. Time has passed.
+        The owner has not responded.
+      </p>
+
+      <div class="console" id="vigilConsole">
+        <span class="console-cursor" id="vigilCursor"></span>
+      </div>
+
+      <div class="btn-row" id="vigilNext" style="display: none;">
+        <button class="btn btn-primary" onclick="startEulogy()">Enter Eulogy Phase →</button>
+      </div>
+    </div>
+
+    <!-- ========== STEP 6: EULOGY ========== -->
+    <div class="step" id="step-6">
+      <span class="label step-label" style="color: var(--phase-eulogy);">Phase Two — Eulogy</span>
+      <h2>The agent <em>acts</em></h2>
+      <p class="step-description" id="eulogyDescription"></p>
+
+      <div id="eulogyResults"></div>
+
+      <div class="btn-row" id="eulogyNext" style="display: none;">
+        <button class="btn btn-primary" onclick="startRest()">Enter Rest Phase →</button>
+      </div>
+    </div>
+
+    <!-- ========== STEP 7: REST ========== -->
+    <div class="step" id="step-7">
+      <span class="label step-label" style="color: var(--phase-rest);">Phase Three — Rest</span>
+      <h2>The agent <em>resolves</em></h2>
+      <p class="step-description">
+        The grace period has ended. The agent executes its final directive.
+      </p>
+
+      <div id="restContent"></div>
+
+      <div class="btn-row" id="restNext" style="display: none;">
+        <button class="btn btn-ghost" onclick="window.location.href='index.html'">← Return to Manifesto</button>
+        <button class="btn btn-primary" onclick="restart()">Experience Again →</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       SCRIPT
+       ============================================================ -->
+  <script>
+    // @ts-check
+
+    /* ============================================================
+       CONFIGURATION — Timing and simulation parameters
+       ============================================================ */
+    /** @type {number} Delay between console lines in VIGIL (ms) */
+    const VIGIL_LINE_DELAY = 800;
+
+    /** @type {number} Delay between result cards in EULOGY (ms) */
+    const EULOGY_CARD_DELAY = 600;
+
+    /** @type {number} Duration of transition overlay display (ms) */
+    const TRANSITION_DURATION = 3000;
+
+    /** @type {number} Delay before auto-advancing to next phase (ms) */
+    const AUTO_ADVANCE_DELAY = 2000;
+
+    /** @type {number} Total number of steps in the simulation */
+    const TOTAL_STEPS = 8;
+
+    /* ============================================================
+       STATE
+       ============================================================ */
+    /** @type {number} */
+    let currentStep = 0;
+
+    /** @type {{ ownerName: string, agentName: string, threshold: string, executorName: string, beneficiaryName: string, memorialName: string, verifierName: string, redactions: string[], gracePeriod: string, finalMessage: string, terminalState: string }} */
+    let willData = {
+      ownerName: '',
+      agentName: '',
+      threshold: '',
+      executorName: '',
+      beneficiaryName: '',
+      memorialName: '',
+      verifierName: '',
+      redactions: [],
+      gracePeriod: '',
+      finalMessage: '',
+      terminalState: ''
+    };
+
+    /* ============================================================
+       STEP NAVIGATION
+       ============================================================ */
+    /**
+     * Navigate to a specific step.
+     * @param {number} stepIndex
+     */
+    function goToStep(stepIndex) {
+      const prevStep = document.getElementById(`step-${currentStep}`);
+      if (prevStep) {
+        prevStep.classList.remove('visible');
+        setTimeout(() => {
+          prevStep.classList.remove('active');
+          showStep(stepIndex);
+        }, 300);
+      } else {
+        showStep(stepIndex);
+      }
+    }
+
+    /**
+     * Show a step and animate it in.
+     * @param {number} stepIndex
+     */
+    function showStep(stepIndex) {
+      currentStep = stepIndex;
+      updateProgress();
+
+      const step = document.getElementById(`step-${stepIndex}`);
+      if (!step) return;
+
+      step.classList.add('active');
+      // Force reflow before adding visible class
+      void step.offsetHeight;
+      requestAnimationFrame(() => {
+        step.classList.add('visible');
+      });
+
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /**
+     * Instantly swap to a step (no fade animation).
+     * Used when the transition overlay covers the swap.
+     * @param {number} stepIndex
+     */
+    function swapStep(stepIndex) {
+      // Hide current step instantly
+      const prev = document.getElementById(`step-${currentStep}`);
+      if (prev) prev.classList.remove('visible', 'active');
+
+      currentStep = stepIndex;
+      updateProgress();
+
+      const step = document.getElementById(`step-${stepIndex}`);
+      if (!step) return;
+
+      step.classList.add('active', 'visible');
+      window.scrollTo({ top: 0 });
+    }
+
+    /** Update the progress bar. */
+    function updateProgress() {
+      const fill = document.getElementById('progressFill');
+      if (fill) {
+        const pct = ((currentStep + 1) / TOTAL_STEPS) * 100;
+        fill.style.width = `${pct}%`;
+      }
+    }
+
+    /* ============================================================
+       TRANSITION OVERLAY
+       ============================================================ */
+    /**
+     * Show a dramatic transition screen.
+     * @param {string} title
+     * @param {string} text
+     * @param {() => void} callback
+     */
+    function showTransition(title, text, callback) {
+      const overlay = document.getElementById('transitionOverlay');
+      const titleEl = document.getElementById('transitionTitle');
+      const textEl = document.getElementById('transitionText');
+      if (!overlay || !titleEl || !textEl) return;
+
+      // Prepare content while hidden
+      overlay.classList.remove('reveal-text');
+      titleEl.textContent = title;
+      textEl.textContent = text;
+
+      // Show overlay (instant — same bg color, no visible change)
+      overlay.classList.add('active');
+
+      // Fade text in on next frame
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          overlay.classList.add('reveal-text');
+        });
+      });
+
+      // After hold duration: fade text → swap content behind overlay → reveal
+      setTimeout(() => {
+        overlay.classList.remove('reveal-text');
+        setTimeout(() => {
+          // Run callback while overlay still covers everything
+          callback();
+          // Then hide overlay to reveal new content
+          requestAnimationFrame(() => {
+            overlay.classList.remove('active');
+          });
+        }, 600);
+      }, TRANSITION_DURATION);
+    }
+
+    /* ============================================================
+       WILL CONFIRMATION — Gather data & trigger protocol
+       ============================================================ */
+    function confirmWill() {
+      // Gather form data with fallbacks
+      willData.ownerName = getVal('ownerName') || 'Alex Chen';
+      willData.agentName = getVal('agentName') || 'ARIA';
+      willData.threshold = getVal('inactivityThreshold') || '7d';
+      willData.executorName = getVal('executorName') || 'Jordan Chen';
+      willData.beneficiaryName = getVal('beneficiaryName') || 'Sam Chen';
+      willData.memorialName = getVal('memorialName') || 'Riley Chen';
+      willData.verifierName = getVal('verifierName') || 'Jordan Chen';
+      willData.gracePeriod = getVal('gracePeriod') || '90';
+      willData.finalMessage = getVal('finalMessage') || 'Take care of each other. Everything you need is in the Black Box. I love you.';
+      willData.terminalState = getVal('terminalState') || 'distill';
+
+      // Gather redactions
+      willData.redactions = [];
+      if (isChecked('redactMedical')) willData.redactions.push('Medical conversations');
+      if (isChecked('redactDating')) willData.redactions.push('Dating & romantic context');
+      if (isChecked('redactFinancial')) willData.redactions.push('Private financial discussions');
+      if (isChecked('redactTherapy')) willData.redactions.push('Therapy & mental health');
+      if (isChecked('redactCreative')) willData.redactions.push('Unpublished creative work');
+
+      // Transition to VIGIL
+      showTransition(
+        'Time passes.',
+        `${willData.ownerName} has not interacted with ${willData.agentName} for ${formatThreshold(willData.threshold)}. The WAKE protocol initiates.`,
+        () => {
+          swapStep(5);
+          setTimeout(runVigilSequence, 400);
+        }
+      );
+    }
+
+    /* ============================================================
+       VIGIL SEQUENCE — Simulated agent console
+       ============================================================ */
+    function runVigilSequence() {
+      const console = document.getElementById('vigilConsole');
+      const cursor = document.getElementById('vigilCursor');
+      const nextBtn = document.getElementById('vigilNext');
+      if (!console || !cursor || !nextBtn) return;
+
+      const thresholdLabel = formatThreshold(willData.threshold);
+
+      /** @type {{ timestamp: string, text: string, status: string }[]} */
+      const lines = [
+        { timestamp: 'DAY 0', text: `Last interaction with ${willData.ownerName} recorded.`, status: '' },
+        { timestamp: `+${thresholdLabel}`, text: `Inactivity threshold reached. WAKE VIGIL initiated.`, status: 'warn' },
+        { timestamp: 'VIGIL', text: `Attempting primary contact: ${willData.ownerName}...`, status: 'info' },
+        { timestamp: 'VIGIL', text: 'No response. Escalating to secondary channels.', status: 'warn' },
+        { timestamp: 'VIGIL', text: `Contacting secondary: email, SMS, push notification...`, status: 'info' },
+        { timestamp: 'VIGIL', text: 'No response across all channels.', status: 'warn' },
+        { timestamp: 'VIGIL', text: `Contacting designated verifier: ${willData.verifierName}...`, status: 'info' },
+        { timestamp: 'VIGIL', text: `${willData.verifierName} has responded.`, status: 'success' },
+        { timestamp: 'VIGIL', text: 'Requesting death confirmation...', status: 'warn' },
+        { timestamp: '...', text: '', status: '' },
+        { timestamp: 'CONFIRMED', text: `Death event confirmed by ${willData.verifierName}.`, status: 'critical' },
+        { timestamp: 'WAKE', text: `${willData.agentName} entering EULOGY phase.`, status: 'warn' },
+      ];
+
+      let lineIndex = 0;
+
+      function addLine() {
+        if (lineIndex >= lines.length) {
+          if (cursor) cursor.style.display = 'none';
+          nextBtn.style.display = 'flex';
+          nextBtn.style.opacity = '0';
+          requestAnimationFrame(() => {
+            nextBtn.style.transition = 'opacity 0.6s ease';
+            nextBtn.style.opacity = '1';
+          });
+          return;
+        }
+
+        const line = lines[lineIndex];
+        const lineEl = document.createElement('div');
+        lineEl.className = 'console-line';
+
+        if (line.text === '') {
+          lineEl.innerHTML = '<span class="timestamp">···</span>';
+        } else {
+          const statusClass = line.status ? `status--${line.status}` : 'status';
+          lineEl.innerHTML = `<span class="timestamp">[${line.timestamp}]</span><span class="${statusClass}">${line.text}</span>`;
+        }
+
+        console.insertBefore(lineEl, cursor);
+        requestAnimationFrame(() => lineEl.classList.add('shown'));
+
+        // Auto-scroll
+        console.scrollTop = console.scrollHeight;
+
+        lineIndex++;
+        setTimeout(addLine, line.text === '' ? VIGIL_LINE_DELAY * 2 : VIGIL_LINE_DELAY);
+      }
+
+      addLine();
+    }
+
+    /* ============================================================
+       EULOGY PHASE
+       ============================================================ */
+    function startEulogy() {
+      showTransition(
+        'Eulogy.',
+        `${willData.agentName} is now executing ${willData.ownerName}'s succession plan.`,
+        () => {
+          swapStep(6);
+          setTimeout(renderEulogyResults, 400);
+        }
+      );
+    }
+
+    function renderEulogyResults() {
+      const container = document.getElementById('eulogyResults');
+      const description = document.getElementById('eulogyDescription');
+      const nextBtn = document.getElementById('eulogyNext');
+      if (!container || !description || !nextBtn) return;
+
+      description.textContent = `You are now ${willData.executorName}. ${willData.agentName} has recognized your Executor tier access. Here is what the agent has prepared.`;
+
+      container.innerHTML = '';
+
+      const cards = [];
+
+      // Card 1: Access Tier
+      cards.push(`
+        <div class="result-card" id="eCard0">
+          <span class="card-label">Access Granted</span>
+          <h4>Your Tier: Executor</h4>
+          <span class="tier-badge tier-badge--executor">Executor Access</span>
+          <p style="margin-top: 16px;">Full operational access. You can view the Black Box, manage active tasks, and initiate the terminal state.</p>
+        </div>
+      `);
+
+      // Card 2: Final Message
+      cards.push(`
+        <div class="result-card" id="eCard1">
+          <span class="card-label">Final Message from ${willData.ownerName}</span>
+          <h4>Delivered by ${willData.agentName}</h4>
+          <div class="message-text">"${escapeHtml(willData.finalMessage)}"</div>
+        </div>
+      `);
+
+      // Card 3: Redactions
+      const redactedList = willData.redactions.length > 0
+        ? willData.redactions.map(r => `<span class="redacted">${r}</span>`).join(' ')
+        : '<span style="color: var(--text-dim);">No redactions configured.</span>';
+
+      cards.push(`
+        <div class="result-card" id="eCard2">
+          <span class="card-label">Redacted Memory Categories</span>
+          <h4>Protected Content</h4>
+          <p>The following memory categories have been permanently purged per ${willData.ownerName}'s instructions:</p>
+          <p style="margin-top: 12px; line-height: 2.2;">${redactedList}</p>
+        </div>
+      `);
+
+      // Card 4: Black Box
+      cards.push(`
+        <div class="result-card" id="eCard3">
+          <span class="card-label">The Black Box</span>
+          <h4>Structured Knowledge Summary</h4>
+          <p style="margin-bottom: 16px;">Derived knowledge — not raw conversation history.</p>
+          <div class="blackbox-item">
+            <span class="blackbox-key">Active Bills</span>
+            <span class="blackbox-value">3 recurring payments maintained through grace period (${willData.gracePeriod} days)</span>
+          </div>
+          <div class="blackbox-item">
+            <span class="blackbox-key">Pending Items</span>
+            <span class="blackbox-value">2 scheduled commitments requiring attention</span>
+          </div>
+          <div class="blackbox-item">
+            <span class="blackbox-key">Key Contacts</span>
+            <span class="blackbox-value">12 contacts categorized by relationship and urgency</span>
+          </div>
+          <div class="blackbox-item">
+            <span class="blackbox-key">Documents</span>
+            <span class="blackbox-value">Insurance, accounts, legal — locations and access methods compiled</span>
+          </div>
+          <div class="blackbox-item">
+            <span class="blackbox-key">Grace Period</span>
+            <span class="blackbox-value">${willData.gracePeriod} days of critical operations maintenance remaining</span>
+          </div>
+        </div>
+      `);
+
+      // Card 5: Other tiers
+      cards.push(`
+        <div class="result-card" id="eCard4">
+          <span class="card-label">Other Beneficiaries Notified</span>
+          <h4>Tiered Access Active</h4>
+          <p style="margin-bottom: 12px;">
+            <span class="tier-badge tier-badge--beneficiary">Beneficiary</span>
+            <span style="margin-left: 12px; color: var(--text-secondary);">${willData.beneficiaryName} — scoped query access to finances and documents</span>
+          </p>
+          <p>
+            <span class="tier-badge tier-badge--memorial">Memorial</span>
+            <span style="margin-left: 12px; color: var(--text-secondary);">${willData.memorialName} — curated memories and messages from ${willData.ownerName}</span>
+          </p>
+        </div>
+      `);
+
+      container.innerHTML = cards.join('');
+
+      // Stagger reveal
+      cards.forEach((_, i) => {
+        setTimeout(() => {
+          const card = document.getElementById(`eCard${i}`);
+          if (card) card.classList.add('shown');
+        }, EULOGY_CARD_DELAY * (i + 1));
+      });
+
+      // Show next button after all cards
+      setTimeout(() => {
+        nextBtn.style.display = 'flex';
+        nextBtn.style.opacity = '0';
+        requestAnimationFrame(() => {
+          nextBtn.style.transition = 'opacity 0.6s ease';
+          nextBtn.style.opacity = '1';
+        });
+      }, EULOGY_CARD_DELAY * (cards.length + 1));
+    }
+
+    /* ============================================================
+       REST PHASE
+       ============================================================ */
+    function startRest() {
+      showTransition(
+        `${willData.gracePeriod} days later.`,
+        'The grace period has ended. The agent executes its final directive.',
+        () => {
+          swapStep(7);
+          setTimeout(renderRestState, 400);
+        }
+      );
+    }
+
+    function renderRestState() {
+      const container = document.getElementById('restContent');
+      const nextBtn = document.getElementById('restNext');
+      if (!container || !nextBtn) return;
+
+      const stateConfigs = {
+        archive: {
+          icon: '◈',
+          title: 'Archived',
+          description: `${willData.agentName} has been fully preserved. All remaining knowledge encrypted and stored under access controls defined by ${willData.ownerName}'s WAKE Will. The agent sleeps — intact, protected, and waiting should it ever be needed again.`,
+          class: ''
+        },
+        distill: {
+          icon: '◇',
+          title: 'Distilled',
+          description: `${willData.agentName} has extracted its structured knowledge into the Black Box. All raw conversational memory has been permanently purged. What remains is pure signal — the knowledge ${willData.ownerName} wanted preserved, without the private context that surrounded it.`,
+          class: ''
+        },
+        delete: {
+          icon: '∅',
+          title: 'Deleted',
+          description: `${willData.agentName} has been permanently terminated per ${willData.ownerName}'s wishes. All memory, all context, all knowledge — gone. This was ${willData.ownerName}'s final act of autonomy. Some things are meant to end.`,
+          class: 'fade-away'
+        }
+      };
+
+      const state = stateConfigs[willData.terminalState] || stateConfigs.distill;
+
+      container.innerHTML = `
+        <div class="result-card" id="rCard0">
+          <div class="terminal-state ${state.class}" id="terminalDisplay">
+            <span class="state-icon">${state.icon}</span>
+            <h3>${state.title}</h3>
+            <p>${state.description}</p>
+          </div>
+        </div>
+        <div class="result-card" id="rCard1" style="text-align: center; border-color: var(--phase-rest);">
+          <span class="card-label" style="color: var(--phase-rest);">Protocol Complete</span>
+          <p style="margin-top: 8px;">
+            WAKE executed successfully.<br />
+            ${willData.ownerName}'s wishes were honored.<br />
+            ${willData.agentName} knew how to say goodbye.
+          </p>
+        </div>
+      `;
+
+      // Stagger fade in
+      setTimeout(() => {
+        const c0 = document.getElementById('rCard0');
+        if (c0) c0.classList.add('shown');
+      }, 300);
+
+      setTimeout(() => {
+        const c1 = document.getElementById('rCard1');
+        if (c1) c1.classList.add('shown');
+      }, 900);
+
+      const btnDelay = willData.terminalState === 'delete' ? 4000 : 2000;
+      setTimeout(() => {
+        nextBtn.style.display = 'flex';
+        nextBtn.style.opacity = '0';
+        requestAnimationFrame(() => {
+          nextBtn.style.transition = 'opacity 0.6s ease';
+          nextBtn.style.opacity = '1';
+        });
+      }, btnDelay);
+    }
+
+    /* ============================================================
+       UTILITIES
+       ============================================================ */
+    /**
+     * Get input value by ID.
+     * @param {string} id
+     * @returns {string}
+     */
+    function getVal(id) {
+      const el = /** @type {HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null} */ (
+        document.getElementById(id)
+      );
+      return el ? el.value.trim() : '';
+    }
+
+    /**
+     * Check if a checkbox is checked.
+     * @param {string} id
+     * @returns {boolean}
+     */
+    function isChecked(id) {
+      const el = /** @type {HTMLInputElement | null} */ (document.getElementById(id));
+      return el ? el.checked : false;
+    }
+
+    /**
+     * Format threshold value for display.
+     * @param {string} val
+     * @returns {string}
+     */
+    function formatThreshold(val) {
+      const map = { '72h': '72 hours', '7d': '7 days', '30d': '30 days' };
+      return map[val] || val;
+    }
+
+    /**
+     * Escape HTML to prevent XSS in user input.
+     * @param {string} str
+     * @returns {string}
+     */
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    /** Restart the simulation. */
+    function restart() {
+      // Reset all steps
+      document.querySelectorAll('.step').forEach(s => {
+        s.classList.remove('active', 'visible');
+      });
+
+      // Clear dynamic content
+      const vigilConsole = document.getElementById('vigilConsole');
+      if (vigilConsole) {
+        vigilConsole.innerHTML = '<span class="console-cursor" id="vigilCursor"></span>';
+      }
+      const eulogyResults = document.getElementById('eulogyResults');
+      if (eulogyResults) eulogyResults.innerHTML = '';
+      const restContent = document.getElementById('restContent');
+      if (restContent) restContent.innerHTML = '';
+
+      // Hide next buttons
+      ['vigilNext', 'eulogyNext', 'restNext'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.style.display = 'none'; el.style.opacity = '0'; }
+      });
+
+      goToStep(0);
+    }
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+    updateProgress();
+    document.fonts.ready.then(() => {
+      document.body.classList.add('loaded');
+      requestAnimationFrame(() => {
+        const firstStep = document.getElementById('step-0');
+        if (firstStep) firstStep.classList.add('visible');
+      });
+    });
+  </script>
+
+</body>
+
+</html>

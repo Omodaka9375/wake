@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WAKE — Will-Aware Knowledge Execution</title>
+  <meta name="description"
+    content="A post-mortem protocol for AI agents. What happens to your agent when you're gone?" />
+  <meta name="color-scheme" content="dark" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap"
+    rel="stylesheet" />
+
+  <style>
+    /* ================================================================
+       CONFIGURATION — Key variables for easy tuning
+       ================================================================ */
+    :root {
+      /* Palette */
+      --bg-deep: #060606;
+      --bg-section: #0a0908;
+      --bg-card: #111110;
+      --text-primary: #e8e0d4;
+      --text-secondary: #8a8478;
+      --text-dim: #4a463f;
+      --accent-gold: #c9a84c;
+      --accent-amber: #d4a03c;
+      --accent-warm: #b8860b;
+      --phase-vigil: #c9a84c;
+      --phase-eulogy: #e8e0d4;
+      --phase-rest: #6b7b8d;
+      --border-subtle: #1a1918;
+
+      /* Typography */
+      --font-display: 'Instrument Serif', Georgia, serif;
+      --font-body: 'IBM Plex Mono', 'Courier New', monospace;
+      --font-label: 'Syne', 'Helvetica Neue', sans-serif;
+
+      /* Spacing */
+      --section-pad: clamp(80px, 12vh, 160px);
+      --content-max: 900px;
+
+      /* Animation */
+      --reveal-duration: 0.9s;
+      --reveal-easing: cubic-bezier(0.16, 1, 0.3, 1);
+      --stagger-step: 0.12s;
+    }
+
+    /* ================================================================
+       RESET & BASE
+       ================================================================ */
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background: var(--bg-deep);
+    }
+
+    body {
+      opacity: 0;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-weight: 300;
+      font-size: clamp(14px, 1.1vw, 17px);
+      line-height: 1.75;
+      overflow-x: hidden;
+      transition: opacity 0.4s ease;
+    }
+
+    body.loaded {
+      opacity: 1;
+    }
+
+    ::selection {
+      background: var(--accent-gold);
+      color: var(--bg-deep);
+    }
+
+    /* ================================================================
+       NOISE OVERLAY — Subtle grain texture
+       ================================================================ */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 256px;
+    }
+
+    /* ================================================================
+       SCROLL-REVEAL SYSTEM
+       ================================================================ */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition:
+        opacity var(--reveal-duration) var(--reveal-easing),
+        transform var(--reveal-duration) var(--reveal-easing);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-fade {
+      opacity: 0;
+      transition: opacity calc(var(--reveal-duration) * 1.2) var(--reveal-easing);
+    }
+
+    .reveal-fade.visible {
+      opacity: 1;
+    }
+
+    /* Stagger children */
+    .stagger>.reveal:nth-child(1) {
+      transition-delay: calc(var(--stagger-step) * 0);
+    }
+
+    .stagger>.reveal:nth-child(2) {
+      transition-delay: calc(var(--stagger-step) * 1);
+    }
+
+    .stagger>.reveal:nth-child(3) {
+      transition-delay: calc(var(--stagger-step) * 2);
+    }
+
+    .stagger>.reveal:nth-child(4) {
+      transition-delay: calc(var(--stagger-step) * 3);
+    }
+
+    .stagger>.reveal:nth-child(5) {
+      transition-delay: calc(var(--stagger-step) * 4);
+    }
+
+    .stagger>.reveal:nth-child(6) {
+      transition-delay: calc(var(--stagger-step) * 5);
+    }
+
+    .stagger>.reveal:nth-child(7) {
+      transition-delay: calc(var(--stagger-step) * 6);
+    }
+
+    .stagger>.reveal:nth-child(8) {
+      transition-delay: calc(var(--stagger-step) * 7);
+    }
+
+    /* ================================================================
+       LAYOUT
+       ================================================================ */
+    section {
+      padding: var(--section-pad) clamp(24px, 5vw, 80px);
+      position: relative;
+    }
+
+    .section-inner {
+      max-width: var(--content-max);
+      margin: 0 auto;
+    }
+
+    /* ================================================================
+       TYPOGRAPHY
+       ================================================================ */
+    h1,
+    h2,
+    h3 {
+      font-family: var(--font-display);
+      font-weight: 400;
+      line-height: 1.1;
+    }
+
+    .label {
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent-gold);
+    }
+
+    /* ================================================================
+       HERO
+       ================================================================ */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 200px;
+      background: linear-gradient(to bottom, transparent, var(--bg-deep));
+      pointer-events: none;
+    }
+
+    /* Ambient glow */
+    .hero-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(201, 168, 76, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+      animation: glow-pulse 6s ease-in-out infinite;
+    }
+
+    @keyframes glow-pulse {
+
+      0%,
+      100% {
+        opacity: 0.5;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.15);
+      }
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-pretitle {
+      margin-bottom: 32px;
+      opacity: 0;
+      animation: fade-in 1s var(--reveal-easing) 0.3s forwards;
+    }
+
+    /* ================================================================
+       WAKE MARK — Memorial-style typographic logo
+       ================================================================ */
+    .wake-mark {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 48px;
+    }
+
+    .mark-ornament {
+      font-size: 10px;
+      color: var(--accent-gold);
+      margin-bottom: 14px;
+      opacity: 0;
+      animation: fade-in 0.8s var(--reveal-easing) 0.3s forwards;
+    }
+
+    .mark-rule {
+      width: clamp(280px, 50vw, 520px);
+      height: 1px;
+      position: relative;
+      opacity: 0;
+    }
+
+    .mark-rule--top {
+      animation: rule-draw 1s var(--reveal-easing) 0.5s forwards;
+    }
+
+    .mark-rule--bottom {
+      animation: rule-draw 1s var(--reveal-easing) 0.7s forwards;
+    }
+
+    .mark-rule::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right, transparent, var(--accent-gold), transparent);
+    }
+
+    /* Corner brackets */
+    .mark-rule--top::after,
+    .mark-rule--bottom::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 8px;
+      pointer-events: none;
+    }
+
+    .mark-rule--top::after {
+      top: 0;
+      border-left: 1px solid var(--accent-gold);
+      border-right: 1px solid var(--accent-gold);
+      opacity: 0.3;
+    }
+
+    .mark-rule--bottom::after {
+      bottom: 0;
+      border-left: 1px solid var(--accent-gold);
+      border-right: 1px solid var(--accent-gold);
+      opacity: 0.3;
+    }
+
+    @keyframes rule-draw {
+      from {
+        opacity: 0;
+        transform: scaleX(0);
+      }
+
+      to {
+        opacity: 1;
+        transform: scaleX(1);
+      }
+    }
+
+    .mark-text {
+      font-family: var(--font-display);
+      font-size: clamp(64px, 14vw, 200px);
+      line-height: 1;
+      letter-spacing: 0.08em;
+      padding: clamp(8px, 1.5vw, 16px) 0;
+      opacity: 0;
+      animation: title-rise 1.2s var(--reveal-easing) 0.8s forwards;
+    }
+
+    .mark-w {
+      color: var(--accent-gold);
+    }
+
+    .mark-ake {
+      color: var(--text-primary);
+    }
+
+    .mark-subtitle {
+      font-family: var(--font-label);
+      font-size: clamp(9px, 1vw, 12px);
+      font-weight: 600;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 20px;
+      opacity: 0;
+      animation: fade-in 1s var(--reveal-easing) 1.2s forwards;
+    }
+
+    .hero-subtitle {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: clamp(16px, 2vw, 24px);
+      color: var(--text-secondary);
+      margin-bottom: 0;
+      opacity: 0;
+      animation: fade-in 1s var(--reveal-easing) 1.5s forwards;
+    }
+
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes title-rise {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .scroll-indicator {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+      opacity: 0;
+      animation: fade-in 1s var(--reveal-easing) 2s forwards;
+    }
+
+    .scroll-indicator .line {
+      width: 1px;
+      height: 48px;
+      background: linear-gradient(to bottom, var(--accent-gold), transparent);
+      margin: 0 auto 8px;
+      animation: scroll-pulse 2s ease-in-out infinite;
+    }
+
+    .scroll-indicator .label {
+      font-size: 9px;
+    }
+
+    @keyframes scroll-pulse {
+
+      0%,
+      100% {
+        opacity: 0.3;
+      }
+
+      50% {
+        opacity: 1;
+      }
+    }
+
+    /* ================================================================
+       PROBLEM SECTION
+       ================================================================ */
+    .problem {
+      background: var(--bg-section);
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .problem-question {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: clamp(28px, 4vw, 56px);
+      line-height: 1.2;
+      color: var(--text-primary);
+      margin-bottom: 48px;
+    }
+
+    .problem-question em {
+      color: var(--accent-gold);
+      font-style: italic;
+    }
+
+    .problem-body {
+      max-width: 680px;
+    }
+
+    .problem-body p {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+      margin-top: 48px;
+      padding-top: 48px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .stat-card {
+      padding: 24px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+    }
+
+    .stat-card .stat-icon {
+      font-size: 20px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .stat-card h4 {
+      font-family: var(--font-label);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-gold);
+      margin-bottom: 8px;
+    }
+
+    .stat-card p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 0;
+    }
+
+    /* ================================================================
+       DIVIDER
+       ================================================================ */
+    .divider {
+      padding: 0 clamp(24px, 5vw, 80px);
+    }
+
+    .divider-line {
+      max-width: var(--content-max);
+      margin: 0 auto;
+      height: 1px;
+      background: linear-gradient(to right,
+          transparent,
+          var(--accent-gold),
+          transparent);
+      opacity: 0.3;
+    }
+
+    /* ================================================================
+       PROTOCOL SECTION — The Three Phases
+       ================================================================ */
+    .protocol {
+      background: var(--bg-deep);
+    }
+
+    .protocol-intro {
+      text-align: center;
+      margin-bottom: clamp(60px, 8vh, 120px);
+    }
+
+    .protocol-intro h2 {
+      font-size: clamp(36px, 5vw, 72px);
+      margin-top: 16px;
+      margin-bottom: 20px;
+    }
+
+    .protocol-intro p {
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* Phase Cards */
+    .phases {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(40px, 6vh, 80px);
+    }
+
+    .phase {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: clamp(24px, 4vw, 60px);
+      align-items: start;
+      padding: clamp(32px, 4vw, 48px);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-section);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .phase::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 100%;
+    }
+
+    .phase--vigil::before {
+      background: var(--phase-vigil);
+    }
+
+    .phase--eulogy::before {
+      background: var(--phase-eulogy);
+    }
+
+    .phase--rest::before {
+      background: var(--phase-rest);
+    }
+
+    .phase-number {
+      font-family: var(--font-display);
+      font-size: clamp(72px, 8vw, 120px);
+      line-height: 0.85;
+      color: var(--border-subtle);
+      user-select: none;
+    }
+
+    .phase--vigil .phase-number {
+      color: rgba(201, 168, 76, 0.12);
+    }
+
+    .phase--eulogy .phase-number {
+      color: rgba(232, 224, 212, 0.08);
+    }
+
+    .phase--rest .phase-number {
+      color: rgba(107, 123, 141, 0.12);
+    }
+
+    .phase-content .label {
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .phase--vigil .label {
+      color: var(--phase-vigil);
+    }
+
+    .phase--eulogy .label {
+      color: var(--phase-eulogy);
+    }
+
+    .phase--rest .label {
+      color: var(--phase-rest);
+    }
+
+    .phase-content h3 {
+      font-size: clamp(24px, 3vw, 40px);
+      margin-bottom: 16px;
+    }
+
+    .phase-content p {
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      max-width: 580px;
+    }
+
+    .phase-steps {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .phase-steps li {
+      font-size: 13px;
+      color: var(--text-secondary);
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .phase-steps li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--text-dim);
+    }
+
+    /* ================================================================
+       WAKE WILL SECTION
+       ================================================================ */
+    .will-section {
+      background: var(--bg-section);
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .will-section h2 {
+      font-size: clamp(32px, 4vw, 56px);
+      margin-top: 16px;
+      margin-bottom: 20px;
+    }
+
+    .will-section>.section-inner>p {
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin-bottom: 48px;
+    }
+
+    .will-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .will-item {
+      padding: 28px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      transition: border-color 0.4s ease;
+    }
+
+    .will-item:hover {
+      border-color: var(--accent-gold);
+    }
+
+    .will-item h4 {
+      font-family: var(--font-label);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent-gold);
+      margin-bottom: 10px;
+    }
+
+    .will-item p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    /* ================================================================
+       ETHICS SECTION
+       ================================================================ */
+    .ethics {
+      background: var(--bg-deep);
+    }
+
+    .ethics h2 {
+      font-size: clamp(32px, 4vw, 56px);
+      margin-top: 16px;
+      margin-bottom: 48px;
+    }
+
+    .ethics-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .ethic {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 24px;
+      padding: 28px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      align-items: baseline;
+    }
+
+    .ethic:first-child {
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .ethic h4 {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 20px;
+      color: var(--text-primary);
+    }
+
+    .ethic p {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    /* ================================================================
+       CLOSING / CTA
+       ================================================================ */
+    .closing {
+      min-height: 70vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: var(--bg-section);
+      border-top: 1px solid var(--border-subtle);
+      position: relative;
+    }
+
+    .closing-glow {
+      position: absolute;
+      bottom: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(201, 168, 76, 0.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .closing h2 {
+      font-size: clamp(32px, 5vw, 64px);
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .closing h2 em {
+      font-style: italic;
+      color: var(--accent-gold);
+    }
+
+    .closing p {
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin: 0 auto 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-link {
+      display: inline-block;
+      font-family: var(--font-label);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--bg-deep);
+      background: var(--accent-gold);
+      padding: 16px 40px;
+      text-decoration: none;
+      position: relative;
+      z-index: 1;
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+
+    .cta-link:hover {
+      background: var(--text-primary);
+      transform: translateY(-2px);
+    }
+
+    /* ================================================================
+       FOOTER
+       ================================================================ */
+    footer {
+      padding: 32px clamp(24px, 5vw, 80px);
+      border-top: 1px solid var(--border-subtle);
+      text-align: center;
+    }
+
+    footer p {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+    }
+
+    /* ================================================================
+       RESPONSIVE
+       ================================================================ */
+    @media (max-width: 768px) {
+      .phase {
+        grid-template-columns: 1fr;
+      }
+
+      .phase-number {
+        font-size: 48px;
+      }
+
+      .ethic {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+
+      .stat-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============================================================
+       HERO
+       ============================================================ -->
+  <section class="hero">
+    <div class="hero-glow" aria-hidden="true"></div>
+
+    <div class="hero-content">
+      <div class="hero-pretitle">
+        <span class="label">A Post-Mortem Protocol for AI Agents</span>
+      </div>
+
+      <div class="wake-mark" role="heading" aria-level="1" aria-label="WAKE — Will-Aware Knowledge Execution">
+        <div class="mark-ornament">◆</div>
+        <div class="mark-rule mark-rule--top"></div>
+        <div class="mark-text">
+          <span class="mark-w">W</span><span class="mark-ake">AKE</span>
+        </div>
+        <div class="mark-rule mark-rule--bottom"></div>
+        <div class="mark-subtitle">Will · Aware · Knowledge · Execution</div>
+      </div>
+
+      <p class="hero-subtitle">A post-mortem protocol for the agentic age</p>
+    </div>
+
+    <div class="scroll-indicator" aria-hidden="true">
+      <div class="line"></div>
+      <span class="label">Scroll</span>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       THE PROBLEM
+       ============================================================ -->
+  <section class="problem">
+    <div class="section-inner stagger">
+      <span class="label reveal">The Problem</span>
+
+      <h2 class="problem-question reveal">
+        Your agent knows everything.<br />
+        What happens when <em>you're gone</em>?
+      </h2>
+
+      <div class="problem-body reveal">
+        <p>
+          It's 2026, your AI agent probably already manages your finances, your relationships,
+          runs your business workflows, and holds the most complete model of your
+          intentions that has ever existed outside your own mind.
+        </p>
+        <p>
+          There is no protocol for what happens to it when you die.
+        </p>
+        <p>
+          Your automated payments continue. Your scheduled messages fire into the void.
+          Your private conversations sit in limbo — too sensitive to share,
+          too valuable to destroy. Your family can't access what they need.
+          Your agent doesn't know its human is gone.
+        </p>
+      </div>
+
+      <div class="stat-row reveal">
+        <div class="stat-card">
+          <span class="stat-icon" aria-hidden="true">◇</span>
+          <h4>Operational Chaos</h4>
+          <p>Automated tasks continue or halt unpredictably. Bills get paid to nowhere. Messages send to the living from
+            the dead.</p>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon" aria-hidden="true">◇</span>
+          <h4>Knowledge Loss</h4>
+          <p>Irreplaceable context — passwords, decisions, reasons, relationships — dies with the agent's access.</p>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon" aria-hidden="true">◇</span>
+          <h4>Privacy Breach</h4>
+          <p>Sensitive data exposed to inheritors without consent, or locked away from those who desperately need it.
+          </p>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon" aria-hidden="true">◇</span>
+          <h4>Ethical Void</h4>
+          <p>No framework exists for an agent's behavior when its principal ceases to exist. Authority becomes
+            undefined.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+  </div>
+
+  <!-- ============================================================
+       THE PROTOCOL — Three Phases
+       ============================================================ -->
+  <section class="protocol">
+    <div class="section-inner">
+
+      <div class="protocol-intro stagger">
+        <span class="label reveal">The Protocol</span>
+        <h2 class="reveal">Three Phases</h2>
+        <p class="reveal">
+          WAKE defines a structured succession protocol in three phases —
+          from detection to resolution.
+        </p>
+      </div>
+
+      <div class="phases stagger">
+
+        <!-- VIGIL -->
+        <div class="phase phase--vigil reveal">
+          <div class="phase-number" aria-hidden="true">01</div>
+          <div class="phase-content">
+            <span class="label">Phase One</span>
+            <h3>Vigil</h3>
+            <p>
+              The agent watches. When prolonged inactivity exceeds configured
+              thresholds, it initiates an escalating verification cascade —
+              attempting to reach the owner through every available channel
+              before concluding the worst.
+            </p>
+            <ul class="phase-steps">
+              <li>Inactivity detection beyond owner-configured threshold</li>
+              <li>Escalating contact attempts: direct ping, secondary channels, emergency contacts</li>
+              <li>Designated verifier confirms the death event</li>
+              <li>Protocol transitions to Phase Two</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- EULOGY -->
+        <div class="phase phase--eulogy reveal">
+          <div class="phase-number" aria-hidden="true">02</div>
+          <div class="phase-content">
+            <span class="label">Phase Two</span>
+            <h3>Eulogy</h3>
+            <p>
+              The agent acts. It transitions to caretaker mode, executing the
+              owner's pre-configured succession plan — delivering final messages,
+              activating tiered access, generating the Black Box, and maintaining
+              critical operations through the grace period.
+            </p>
+            <ul class="phase-steps">
+              <li>Caretaker mode activated — discretionary operations paused</li>
+              <li>Final messages delivered to designated contacts</li>
+              <li>Tiered access model engages: Executor, Beneficiary, Memorial</li>
+              <li>Black Box generated — structured knowledge, not raw memory</li>
+              <li>Critical automated tasks maintained through grace period</li>
+              <li>Inter-agent handoffs initiated for beneficiaries with their own agents</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- REST -->
+        <div class="phase phase--rest reveal">
+          <div class="phase-number" aria-hidden="true">03</div>
+          <div class="phase-content">
+            <span class="label">Phase Three</span>
+            <h3>Rest</h3>
+            <p>
+              The agent resolves. When the grace period expires, it enters its
+              terminal state — chosen by the owner, not the platform.
+              Archive. Distill. Delete. The owner's final autonomy.
+            </p>
+            <ul class="phase-steps">
+              <li><strong>Archive</strong> — full preservation, encrypted and access-controlled</li>
+              <li><strong>Distill</strong> — structured knowledge extracted, raw memory purged</li>
+              <li><strong>Delete</strong> — complete termination per the owner's wishes</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+  </div>
+
+  <!-- ============================================================
+       THE WAKE WILL
+       ============================================================ -->
+  <section class="will-section">
+    <div class="section-inner stagger">
+      <span class="label reveal">The Instrument</span>
+      <h2 class="reveal">The WAKE Will</h2>
+      <p class="reveal">
+        A first-class data structure within the agent, configured by the owner
+        during their lifetime. It defines every aspect of the succession.
+      </p>
+
+      <div class="will-grid">
+        <div class="will-item reveal">
+          <h4>Beneficiary Registry</h4>
+          <p>Who gets access, and at what tier. Executor, beneficiary, or memorial — each with different permissions.
+          </p>
+        </div>
+        <div class="will-item reveal">
+          <h4>Redaction Rules</h4>
+          <p>Categories of memory to purge before handoff. Medical conversations, personal relationships, private
+            reflections — protected.</p>
+        </div>
+        <div class="will-item reveal">
+          <h4>Operational Directives</h4>
+          <p>What keeps running, what stops, and for how long. Bills, subscriptions, automated workflows — explicitly
+            governed.</p>
+        </div>
+        <div class="will-item reveal">
+          <h4>Final Messages</h4>
+          <p>Per-contact messages the agent delivers post-mortem. Words the owner chose while they still could.</p>
+        </div>
+        <div class="will-item reveal">
+          <h4>Terminal State</h4>
+          <p>Archive, Distill, or Delete. The owner decides what becomes of their agent — not the platform, not the
+            heirs.</p>
+        </div>
+        <div class="will-item reveal">
+          <h4>Time-Locks</h4>
+          <p>Information released on delay. A message to children when they turn 18. A letter to a partner after a year.
+            Time as a condition.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+  </div>
+
+  <!-- ============================================================
+       ETHICS
+       ============================================================ -->
+  <section class="ethics">
+    <div class="section-inner stagger">
+      <span class="label reveal">The Principles</span>
+      <h2 class="reveal">Ethical Foundations</h2>
+
+      <div class="ethics-list">
+        <div class="ethic reveal">
+          <h4>Owner Sovereignty</h4>
+          <p>The owner's configured wishes are supreme, even if beneficiaries disagree. The dead cannot be overruled.
+          </p>
+        </div>
+        <div class="ethic reveal">
+          <h4>Right to Be Forgotten</h4>
+          <p>The owner can choose total deletion. No override. No appeal. Some things are meant to end.</p>
+        </div>
+        <div class="ethic reveal">
+          <h4>No Resurrection</h4>
+          <p>The agent must not be used to simulate or impersonate the deceased — unless the owner explicitly opted in.
+          </p>
+        </div>
+        <div class="ethic reveal">
+          <h4>Transparency</h4>
+          <p>Beneficiaries know their tier and what's been redacted. Not the content — but the fact of redaction.</p>
+        </div>
+        <div class="ethic reveal">
+          <h4>Dignity</h4>
+          <p>The protocol treats the end of a human-agent relationship with the gravity it deserves. Not a system crash.
+            A ceremony.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       CLOSING
+       ============================================================ -->
+  <section class="closing">
+    <div class="closing-glow" aria-hidden="true"></div>
+    <div class="section-inner stagger">
+      <h2 class="reveal">
+        Your agent should know<br />
+        how to say <em>goodbye</em>.
+      </h2>
+      <p class="reveal">
+        WAKE is an open protocol proposal for agent succession planning.
+        This is not a future problem. It's a 2026 problem.
+      </p>
+      <a href="demo.html" class="cta-link reveal">Experience the Protocol →</a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FOOTER
+       ============================================================ -->
+  <footer>
+    <p>WAKE Protocol — 2026 — Will-Aware Knowledge Execution</p>
+  </footer>
+
+  <!-- ============================================================
+       SCRIPT — Scroll reveal + ambient effects
+       ============================================================ -->
+  <script>
+    // @ts-check
+
+    /* ============================================================
+       CONFIGURATION
+       ============================================================ */
+    /** @type {number} Fraction of element visible before triggering */
+    const REVEAL_THRESHOLD = 0.15;
+
+    /** @type {boolean} Only reveal once (true) or re-reveal on scroll (false) */
+    const REVEAL_ONCE = true;
+
+    /* ============================================================
+       SCROLL REVEAL — IntersectionObserver
+       ============================================================ */
+    const revealElements = /** @type {NodeListOf<HTMLElement>} */ (
+      document.querySelectorAll('.reveal, .reveal-fade')
+    );
+
+    const revealObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            if (REVEAL_ONCE) {
+              revealObserver.unobserve(entry.target);
+            }
+          } else if (!REVEAL_ONCE) {
+            entry.target.classList.remove('visible');
+          }
+        });
+      },
+      { threshold: REVEAL_THRESHOLD }
+    );
+
+    revealElements.forEach((el) => revealObserver.observe(el));
+
+    /* ============================================================
+       PARALLAX GLOW — Subtle mouse tracking on hero
+       ============================================================ */
+    const heroGlow = /** @type {HTMLElement | null} */ (
+      document.querySelector('.hero-glow')
+    );
+
+    if (heroGlow) {
+      document.addEventListener('mousemove', (e) => {
+        const x = (e.clientX / window.innerWidth - 0.5) * 40;
+        const y = (e.clientY / window.innerHeight - 0.5) * 40;
+        heroGlow.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+      });
+    }
+
+    /* ============================================================
+       PAGE LOAD GATE — prevent FOUC
+       ============================================================ */
+    document.fonts.ready.then(() => {
+      document.body.classList.add('loaded');
+    });
+
+    /* ============================================================
+       FADE SCROLL INDICATOR on scroll
+       ============================================================ */
+    const scrollIndicator = /** @type {HTMLElement | null} */ (
+      document.querySelector('.scroll-indicator')
+    );
+
+    if (scrollIndicator) {
+      window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY;
+        scrollIndicator.style.opacity = String(Math.max(0, 1 - scrollY / 200));
+      }, { passive: true });
+    }
+  </script>
+
+</body>
+
+</html>
