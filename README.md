@@ -1,6 +1,8 @@
 # WAKE
 
-<img width="904" height="624" alt="{708FE958-E72B-411C-837F-ADA70471DEE7}" src="https://github.com/user-attachments/assets/4183a0bf-7ecd-4d2e-a468-bae32f2df467" />
+[![npm](https://img.shields.io/npm/v/wake-mcp-server)](https://www.npmjs.com/package/wake-mcp-server) [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](wake-mcp-server/LICENSE)
+
+<img width="904" height="624" alt="WAKE Protocol" src="https://github.com/user-attachments/assets/4183a0bf-7ecd-4d2e-a468-bae32f2df467" />
 
 **Will-Aware Knowledge Execution** — A post-mortem protocol for AI agents.
 

@@ -1,10 +1,12 @@
 # WAKE MCP Server
 
+[![npm](https://img.shields.io/npm/v/wake-mcp-server)](https://www.npmjs.com/package/wake-mcp-server) [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
 **Will-Aware Knowledge Execution** — A post-mortem protocol for AI agents.
 
 23 tools · SQLite + AES-256-GCM encryption · Token auth · 69 passing tests
 
-By [Omodaka9375](https://github.com/Omodaka9375) · Apache-2.0 License
+By [Omodaka9375](https://github.com/Omodaka9375) · [npm](https://www.npmjs.com/package/wake-mcp-server) · Apache-2.0
 
 ## Quick Start
 
