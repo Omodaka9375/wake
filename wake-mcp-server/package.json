@@ -18,9 +18,9 @@
     "start": "node build/index.js",
     "start:http": "node build/index.js --http",
     "test": "node build/test.js",
-    "prepare": "tsc",
     "dev": "tsc --watch",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "prepublishOnly": "tsc"
   },
   "keywords": [
     "mcp",
@@ -36,11 +36,11 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Omodaka9375/wake-mcp-server"
+    "url": "https://github.com/Omodaka9375/wake"
   },
-  "homepage": "https://github.com/Omodaka9375/wake-mcp-server#readme",
+  "homepage": "https://github.com/Omodaka9375/wake#readme",
   "bugs": {
-    "url": "https://github.com/Omodaka9375/wake-mcp-server/issues"
+    "url": "https://github.com/Omodaka9375/wake/issues"
   },
   "engines": {
     "node": ">=20"
@@ -49,13 +49,13 @@
     "@cfworker/json-schema": "^4.1.1",
     "@modelcontextprotocol/node": "2.0.0-alpha.2",
     "@modelcontextprotocol/server": "2.0.0-alpha.2",
-    "@types/better-sqlite3": "^7.6.13",
     "better-sqlite3": "^12.9.0",
-    "typescript": "^6.0.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.0.0-alpha.2",
-    "@types/node": "^25.6.0"
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.6.0",
+    "typescript": "^6.0.3"
   }
 }

@@ -9,7 +9,7 @@ What happens to your agent when you're gone?
 | Directory | Description |
 |---|---|
 | [`wake-mcp-server/`](wake-mcp-server/) | MCP server — 23 tools, SQLite, encrypted, multi-user, web dashboard |
-| [`pitch/`](pitch/) | Manifesto site + interactive protocol demo |
+| [`docs/`](docs/) | Manifesto site + interactive protocol demo (GitHub Pages) |
 
 ## Quick Start
 
