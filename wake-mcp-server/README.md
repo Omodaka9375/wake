@@ -58,8 +58,9 @@ Or with a local build:
 
 **Any MCP client over HTTP:**
 ```
-http://localhost:3000/mcp
+http://localhost:<port>/mcp
 ```
+Default port is 3000. If taken, auto-increments. Set `WAKE_PORT` to override. Check the console output for the actual URL.
 
 ## Agent Skill
 

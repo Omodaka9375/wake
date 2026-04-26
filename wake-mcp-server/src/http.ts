@@ -82,6 +82,19 @@ function startHttpServer(server: McpServer, port: number = DEFAULT_PORT): void {
     await serveStatic(req, res);
   });
 
+  httpServer.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      const nextPort = port + 1;
+      console.error(`Port ${port} in use, trying ${nextPort}...`);
+      httpServer.listen(nextPort, () => {
+        console.error(`WAKE Dashboard: http://localhost:${nextPort}`);
+        console.error(`MCP HTTP endpoint: http://localhost:${nextPort}/mcp`);
+      });
+    } else {
+      console.error('HTTP server error:', err.message);
+    }
+  });
+
   httpServer.listen(port, () => {
     console.error(`WAKE Dashboard: http://localhost:${port}`);
     console.error(`MCP HTTP endpoint: http://localhost:${port}/mcp`);
