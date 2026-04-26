@@ -15,9 +15,14 @@ pnpm start              # stdio + dashboard on :3000
 pnpm run start:http     # dashboard only (no stdio)
 pnpm test               # 69 tests
 
-# npx
+# npx (no install needed)
 npx wake-mcp-server
 npx wake-mcp-server --http
+
+# Global install
+npm i -g wake-mcp-server
+wake-mcp-server
+wake-mcp-server --http
 
 # Docker
 docker build -t wake-mcp-server .
