@@ -28,7 +28,15 @@ docker run -p 3000:3000 -v wake-data:/app/data wake-mcp-server
 
 Dashboard: `http://localhost:3000` (always available)
 
-## Warp MCP Config
+## Connect Your Agent
+
+**Warp / Claude Desktop / Cursor** — same config, different file locations:
+
+| Client | Config file |
+|---|---|
+| Warp | Settings → MCP |
+| Claude Desktop | `claude_desktop_config.json` (under `mcpServers`) |
+| Cursor | `.cursor/mcp.json` (under `mcpServers`) |
 
 ```json
 {
@@ -38,6 +46,23 @@ Dashboard: `http://localhost:3000` (always available)
   }
 }
 ```
+
+**Any MCP client over HTTP:**
+```
+http://localhost:3000/mcp
+```
+
+Replace `<path>` with the absolute path. Or use `npx wake-mcp-server` if installed via npm.
+
+## Agent Skill
+
+[`SKILL.md`](SKILL.md) — platform-agnostic instructions that teach any agent how to use WAKE:
+- **Owner** — auto-heartbeat, conversational will setup, proactive knowledge contribution
+- **Verifier** — death confirmation handling
+- **Beneficiary** — tier-scoped access, final messages, handoff packages
+- **Executor** — EULOGY management, legal export, terminal state, data purge
+
+Point your agent at `SKILL.md` or include it in your system prompt.
 
 ## Protocol
 
