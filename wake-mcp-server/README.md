@@ -36,6 +36,17 @@ Dashboard: `http://localhost:3000` (always available)
 | Claude Desktop | `claude_desktop_config.json` (under `mcpServers`) |
 | Cursor | `.cursor/mcp.json` (under `mcpServers`) |
 
+Using npx (recommended):
+```json
+{
+  "wake-protocol": {
+    "command": "npx",
+    "args": ["wake-mcp-server"]
+  }
+}
+```
+
+Or with a local build:
 ```json
 {
   "wake-protocol": {
@@ -49,8 +60,6 @@ Dashboard: `http://localhost:3000` (always available)
 ```
 http://localhost:3000/mcp
 ```
-
-Replace `<path>` with the absolute path. Or use `npx wake-mcp-server` if installed via npm.
 
 ## Agent Skill
 
