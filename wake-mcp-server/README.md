@@ -29,8 +29,6 @@ docker build -t wake-mcp-server .
 docker run -p 3000:3000 -v wake-data:/app/data wake-mcp-server
 ```
 
-Dashboard: `http://localhost:3000` (always available)
-
 ## Connect Your Agent
 
 **Warp / Claude Desktop / Cursor** — same config, different file locations:
