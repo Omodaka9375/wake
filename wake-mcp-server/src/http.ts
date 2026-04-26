@@ -154,6 +154,33 @@ async function handleApiToolCall(_server: McpServer, req: IncomingMessage, res: 
 
     // Route to appropriate handler
     switch (tool) {
+      case 'configure_will': {
+        const now = new Date().toISOString();
+        const masterToken = generateToken();
+        const verifierToken = generateToken();
+        const beneficiaryTokens: Record<string, string> = {};
+        const beneficiaryHashes: Record<string, string> = {};
+        for (const b of (args.beneficiaries || [])) {
+          const t = generateToken();
+          beneficiaryTokens[b.name] = t;
+          beneficiaryHashes[b.name] = hashToken(t);
+        }
+        const tokens: TokenSet = { masterHash: hashToken(masterToken), verifierHash: hashToken(verifierToken), beneficiaryHashes };
+        const { token: _t, ownerId: _o, ...willFields } = args;
+        const newState: WakeState = { will: willFields, tokens, phase: 'ACTIVE', lastHeartbeat: now, createdAt: now, updatedAt: now };
+        await saveState(newState, ownerId);
+        logAction('configure_will', 'owner', 'ACTIVE', true, `Dashboard: ${willFields.ownerName}`, ownerId);
+        const lines = [
+          `WAKE Will configured for ${willFields.ownerName}. Agent "${willFields.agentName}" is now ACTIVE.`,
+          '', 'SAVE THESE TOKENS — they will not be shown again:', '',
+          `Master token (owner): ${masterToken}`,
+          `Verifier token (${willFields.verifierName}): ${verifierToken}`,
+          '', 'Beneficiary tokens:',
+          ...(args.beneficiaries || []).map((b: any) => `  ${b.name} (${b.tier}): ${beneficiaryTokens[b.name]}`),
+        ];
+        text = JSON.stringify({ message: lines.join('\n') });
+        break;
+      }
       case 'get_status': {
         const state = await loadState(ownerId);
         if (!state) { text = JSON.stringify({ phase: 'UNCONFIGURED' }); break; }

@@ -104,6 +104,50 @@ const app = {
 
   showView,
 
+  /* ── SETUP ── */
+  async configureWill() {
+    const ownerName = document.getElementById('setupOwnerName').value.trim();
+    const agentName = document.getElementById('setupAgentName').value.trim();
+    const executor = document.getElementById('setupExecutor').value.trim();
+    const verifier = document.getElementById('setupVerifier').value.trim();
+    const threshold = parseInt(document.getElementById('setupThreshold').value) || 168;
+    const grace = parseInt(document.getElementById('setupGrace').value) || 90;
+    const terminal = document.getElementById('setupTerminal').value;
+    const jurisdiction = document.getElementById('setupJurisdiction').value.trim();
+    const ownerId = document.getElementById('setupOwnerId').value.trim() || 'default';
+
+    if (!ownerName || !agentName || !executor || !verifier) {
+      toast('Fill in all required fields'); return;
+    }
+
+    const args = {
+      ownerName, agentName,
+      beneficiaries: [{ name: executor, tier: 'executor' }],
+      redactions: [], operationalDirectives: [], finalMessages: [],
+      terminalState: terminal,
+      gracePeriodDays: grace,
+      inactivityThresholdHours: threshold,
+      verifierName: verifier,
+      noResurrection: true,
+      ownerId,
+    };
+    if (jurisdiction) args.jurisdiction = jurisdiction;
+
+    // Call without token (configure_will doesn't need one)
+    const body = { tool: 'configure_will', args };
+    const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json();
+
+    if (data.error) { toast(data.error); return; }
+
+    // Show tokens in output view
+    state.prevView = 'login';
+    document.getElementById('outputTitle').textContent = 'WAKE Will Created — Save Your Tokens';
+    document.getElementById('outputContent').textContent = data.message || JSON.stringify(data, null, 2);
+    showView('output');
+    toast('Will configured! Save your tokens.');
+  },
+
   /* ── OWNER ── */
   async loadOwner() {
     const data = await callTool('get_status');
