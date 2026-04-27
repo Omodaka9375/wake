@@ -312,6 +312,93 @@ async function main(): Promise<void> {
   console.log('\n13. Webhook config');
   assert(dmsConfig.includes('SENTINEL'), 'Webhook-configured will accepted');
 
+  // ── 14. update_will ──
+  console.log('\n14. update_will');
+  // Bob is ACTIVE — update his will
+  const updateResult = await callTool(client, 'update_will', { token: tokens2.master, ownerId: 'bob', agentName: 'ZEUS-V2' });
+  assert(updateResult.includes('Modified') && updateResult.includes('agentName'), 'update_will works');
+  const updatedStatus = await callTool(client, 'get_status', { token: tokens2.master, ownerId: 'bob' });
+  assert(updatedStatus.includes('ZEUS-V2'), 'Agent name updated');
+  // Reject update with wrong token
+  const badUpdate = await callTool(client, 'update_will', { token: tokens.master, ownerId: 'bob', agentName: 'HACK' });
+  assert(badUpdate.includes('Unauthorized'), 'update_will rejects wrong token');
+  // Reject update in non-ACTIVE phase (default owner is REST)
+  const restUpdate = await callTool(client, 'update_will', { token: tokens.master, gracePeriodDays: 999 });
+  assert(restUpdate.includes('Cannot modify') || restUpdate.includes('sealed'), 'update_will rejected in REST');
+
+  // ── 15. delete_knowledge ──
+  console.log('\n15. delete_knowledge');
+  // Add and delete in bob's will (ACTIVE)
+  const kAdd = await callTool(client, 'contribute_knowledge', { token: tokens2.master, ownerId: 'bob', category: 'finances', summary: 'Test delete', details: 'Will be deleted' });
+  assert(kAdd.includes('entry #'), 'Entry added for deletion test');
+  const entryId = parseInt(kAdd.match(/entry #(\d+)/)?.[1] || '0');
+  const delResult = await callTool(client, 'delete_knowledge', { token: tokens2.master, ownerId: 'bob', entryId });
+  assert(delResult.includes('deleted'), 'delete_knowledge works');
+  // Delete non-existent entry
+  const badDel = await callTool(client, 'delete_knowledge', { token: tokens2.master, ownerId: 'bob', entryId: 99999 });
+  assert(badDel.includes('not found'), 'delete_knowledge rejects missing entry');
+
+  // ── 16. restore_backup ──
+  console.log('\n16. restore_backup');
+  // Bob has backups from configure + update + knowledge operations
+  const bobBackups = await callTool(client, 'list_backups', { token: tokens2.master, ownerId: 'bob' });
+  assert(bobBackups.includes('backup(s)'), 'Bob has backups');
+  // Extract first backup ID
+  const backupIdMatch = bobBackups.match(/Backup #(\d+)/);
+  if (backupIdMatch) {
+    const bid = parseInt(backupIdMatch[1]);
+    const restoreResult = await callTool(client, 'restore_backup', { token: tokens2.master, ownerId: 'bob', backupId: bid });
+    assert(restoreResult.includes('restored'), 'restore_backup works');
+  } else {
+    assert(false, 'Could not extract backup ID');
+  }
+  // Restore non-existent backup
+  const badRestore = await callTool(client, 'restore_backup', { token: tokens2.master, ownerId: 'bob', backupId: 99999 });
+  assert(badRestore.includes('not found'), 'restore_backup rejects missing backup');
+
+  // ── 17. Phase gating ──
+  console.log('\n17. Phase gating');
+  // contribute_knowledge rejected in non-ACTIVE (default owner is REST)
+  const kReject = await callTool(client, 'contribute_knowledge', { token: tokens.master, category: 'finances', summary: 'Should fail', details: 'x' });
+  assert(kReject.includes('Cannot add') || kReject.includes('REST'), 'Knowledge rejected in REST');
+  // trigger_vigil rejected in non-ACTIVE
+  const vigilReject = await callTool(client, 'trigger_vigil', { token: tokens.master });
+  assert(vigilReject.includes('Cannot trigger'), 'VIGIL rejected in REST');
+  // verify_death rejected in non-VIGIL (bob is ACTIVE)
+  const verifyReject = await callTool(client, 'verify_death', { token: tokens2.verifier, ownerId: 'bob' });
+  assert(verifyReject.includes('Verification only') || verifyReject.includes('Not verifier') || verifyReject.includes('VIGIL'), 'verify_death rejected in ACTIVE');
+  // execute_terminal_state rejected in non-EULOGY (bob is ACTIVE)
+  const termReject = await callTool(client, 'execute_terminal_state', { token: tokens2.master, ownerId: 'bob' });
+  assert(termReject.includes('EULOGY') || termReject.includes('Terminal state only'), 'Terminal rejected in ACTIVE');
+
+  // ── 18. Beneficiary tier Black Box ──
+  console.log('\n18. Beneficiary tier Black Box');
+  // Sam Chen is beneficiary tier on default owner (REST phase)
+  const samBox = await callTool(client, 'get_black_box', { token: tokens.beneficiaries['Sam Chen'] });
+  assert(samBox.includes('Bank account'), 'Beneficiary sees finance entry');
+  assert(!samBox.includes('ALL BENEFICIARIES'), 'Beneficiary does not see full beneficiary list');
+  assert(!samBox.includes('TERMINAL STATE'), 'Beneficiary does not see terminal state');
+  assert(samBox.includes('OPERATIONAL DIRECTIVES'), 'Beneficiary sees directives');
+
+  // ── 19. Handoff legal fields ──
+  console.log('\n19. Handoff legal fields');
+  // Use timelock owner which has default noResurrection
+  const handoffLegal = await callTool(client, 'initiate_handoff', { token: tlTokens.beneficiaries['Frank TL'], recipientName: 'Frank TL', ownerId: 'timelock-test' });
+  assert(handoffLegal.includes('noResurrection'), 'Handoff includes noResurrection');
+
+  // ── 20. Non-executor terminal rejection ──
+  console.log('\n20. Non-executor terminal rejection');
+  // Sam (beneficiary tier) tries to execute terminal on default owner
+  const samTerm = await callTool(client, 'execute_terminal_state', { token: tokens.beneficiaries['Sam Chen'] });
+  assert(samTerm.includes('Unauthorized') || samTerm.includes('Not executor') || samTerm.includes('EULOGY'), 'Beneficiary tier cannot execute terminal');
+
+  // ── 21. Audit log non-executor rejection ──
+  console.log('\n21. Audit log access control');
+  const samAudit = await callTool(client, 'get_audit_log', { token: tokens.beneficiaries['Sam Chen'] });
+  assert(samAudit.includes('Unauthorized'), 'Non-executor cannot read audit');
+  const rileyAudit = await callTool(client, 'get_audit_log', { token: tokens.beneficiaries['Riley Chen'] });
+  assert(rileyAudit.includes('Unauthorized'), 'Memorial cannot read audit');
+
   // ── Summary ──
   console.log(`\n${'='.repeat(40)}`);
   console.log(`Results: ${passed} passed, ${failed} failed`);
