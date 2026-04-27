@@ -93,6 +93,11 @@ pre { background:var(--bg-card); border:1px solid var(--border); padding:16px; f
 .view { display:none; }
 .view.active { display:block; }
 
+/* Setup wizard steps */
+.setup-step { display:none; opacity:0; transform:translateY(20px); transition:opacity .4s ease, transform .4s ease; }
+.setup-step.active { display:block; }
+.setup-step.visible { opacity:1; transform:translateY(0); }
+
 /* Toast */
 .toast { position:fixed; bottom:24px; right:24px; background:var(--bg-card); border:1px solid var(--gold); padding:12px 20px; font-size:13px; z-index:100; opacity:0; transition:opacity .3s; pointer-events:none; }
 .toast.show { opacity:1; }

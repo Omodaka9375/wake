@@ -104,26 +104,66 @@ const app = {
 
   showView,
 
-  /* ── SETUP ── */
+  /* ── SETUP WIZARD ── */
+  startSetup() {
+    showView('setup');
+    // Reset to step 1 with animation
+    document.querySelectorAll('.setup-step').forEach(s => s.classList.remove('active', 'visible'));
+    const s1 = document.getElementById('setup-1');
+    if (s1) { s1.classList.add('active'); void s1.offsetHeight; requestAnimationFrame(() => s1.classList.add('visible')); }
+  },
+
+  setupNext(step) {
+    // Hide all steps
+    document.querySelectorAll('.setup-step').forEach(s => { s.classList.remove('active', 'visible'); });
+    const el = document.getElementById('setup-' + step);
+    if (el) {
+      el.classList.add('active');
+      void el.offsetHeight;
+      requestAnimationFrame(() => el.classList.add('visible'));
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
+
   async configureWill() {
     const ownerName = document.getElementById('setupOwnerName').value.trim();
     const agentName = document.getElementById('setupAgentName').value.trim();
     const executor = document.getElementById('setupExecutor').value.trim();
+    const beneficiary = document.getElementById('setupBeneficiary').value.trim();
+    const memorial = document.getElementById('setupMemorial').value.trim();
     const verifier = document.getElementById('setupVerifier').value.trim();
     const threshold = parseInt(document.getElementById('setupThreshold').value) || 168;
     const grace = parseInt(document.getElementById('setupGrace').value) || 90;
     const terminal = document.getElementById('setupTerminal').value;
     const jurisdiction = document.getElementById('setupJurisdiction').value.trim();
     const ownerId = document.getElementById('setupOwnerId').value.trim() || 'default';
+    const finalMsg = document.getElementById('setupFinalMessage').value.trim();
 
     if (!ownerName || !agentName || !executor || !verifier) {
-      toast('Fill in all required fields'); return;
+      toast('Fill in owner name, agent name, executor, and verifier'); return;
     }
 
+    // Build beneficiaries list
+    const beneficiaries = [{ name: executor, tier: 'executor' }];
+    if (beneficiary) beneficiaries.push({ name: beneficiary, tier: 'beneficiary' });
+    if (memorial) beneficiaries.push({ name: memorial, tier: 'memorial' });
+
+    // Collect redactions
+    const redactions = [];
+    if (document.getElementById('redactMedical').checked) redactions.push('Medical conversations');
+    if (document.getElementById('redactDating').checked) redactions.push('Dating & romantic context');
+    if (document.getElementById('redactFinancial').checked) redactions.push('Private financial discussions');
+    if (document.getElementById('redactTherapy').checked) redactions.push('Therapy & mental health');
+    if (document.getElementById('redactCreative').checked) redactions.push('Unpublished creative work');
+
+    // Build final messages
+    const finalMessages = [];
+    if (finalMsg) finalMessages.push({ recipientName: executor, message: finalMsg });
+
     const args = {
-      ownerName, agentName,
-      beneficiaries: [{ name: executor, tier: 'executor' }],
-      redactions: [], operationalDirectives: [], finalMessages: [],
+      ownerName, agentName, beneficiaries, redactions,
+      operationalDirectives: [],
+      finalMessages,
       terminalState: terminal,
       gracePeriodDays: grace,
       inactivityThresholdHours: threshold,
@@ -133,19 +173,17 @@ const app = {
     };
     if (jurisdiction) args.jurisdiction = jurisdiction;
 
-    // Call without token (configure_will doesn't need one)
     const body = { tool: 'configure_will', args };
     const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await res.json();
 
     if (data.error) { toast(data.error); return; }
 
-    // Show tokens in output view
     state.prevView = 'login';
-    document.getElementById('outputTitle').textContent = 'WAKE Will Created — Save Your Tokens';
+    document.getElementById('outputTitle').textContent = 'WAKE Will Sealed — Save Your Tokens';
     document.getElementById('outputContent').textContent = data.message || JSON.stringify(data, null, 2);
     showView('output');
-    toast('Will configured! Save your tokens.');
+    toast('Will sealed! Save your tokens.');
   },
 
   /* ── OWNER ── */

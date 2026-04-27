@@ -39,32 +39,74 @@
       <div class="btn-row" style="justify-content:center">
         <button class="btn btn-gold" onclick="app.login()">Authenticate</button>
         <button class="btn btn-ghost" onclick="app.viewPublic()">View Public Status</button>
-        <button class="btn btn-ghost" onclick="app.showView('setup')">Configure New Will</button>
+        <button class="btn btn-ghost" onclick="app.startSetup()">Configure New Will</button>
       </div>
     </div>
   </div>
 
-  <!-- SETUP VIEW -->
+  <!-- SETUP WIZARD -->
   <div class="view" id="view-setup">
-    <div class="login-container" style="max-width:560px">
-      <h2>Configure <span>WAKE</span> Will</h2>
-      <p>Set up your succession plan. Tokens will be generated for all parties.</p>
-      <div class="form-group"><label class="form-label">Your Name</label><input id="setupOwnerName" placeholder="Alex Chen"></div>
-      <div class="form-group"><label class="form-label">Agent Name</label><input id="setupAgentName" placeholder="ARIA"></div>
-      <div class="form-group"><label class="form-label">Executor (full access)</label><input id="setupExecutor" placeholder="Jordan Chen"></div>
-      <div class="form-group"><label class="form-label">Verifier (confirms death)</label><input id="setupVerifier" placeholder="Jordan Chen"></div>
-      <div class="form-group"><label class="form-label">Inactivity Threshold (hours)</label><input type="number" id="setupThreshold" value="168" min="1"></div>
-      <div class="form-group"><label class="form-label">Grace Period (days)</label><input type="number" id="setupGrace" value="90" min="1"></div>
-      <div class="form-group">
-        <label class="form-label">Terminal State</label>
-        <select id="setupTerminal"><option value="archive">Archive</option><option value="distill" selected>Distill</option><option value="delete">Delete</option></select>
+    <div style="max-width:620px;margin:0 auto">
+
+      <!-- Step 1: Identity -->
+      <div class="setup-step active" id="setup-1">
+        <span class="card-label">WAKE Will — Identity</span>
+        <h2 style="font-family:var(--font-display);font-size:32px;margin-bottom:8px">Who are <em style="color:var(--gold);font-style:italic">you</em>?</h2>
+        <p style="color:var(--text-dim);margin-bottom:24px">Your agent needs to know who it's acting on behalf of.</p>
+        <div class="form-group"><label class="form-label">Your Name</label><input id="setupOwnerName" placeholder="Alex Chen"></div>
+        <div class="form-group"><label class="form-label">Agent Name</label><input id="setupAgentName" placeholder="ARIA"></div>
+        <div class="form-group"><label class="form-label">Inactivity Threshold</label>
+          <select id="setupThreshold"><option value="72">72 hours — High-frequency user</option><option value="168" selected>7 days — Standard</option><option value="720">30 days — Casual user</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Owner ID (optional)</label><input id="setupOwnerId" placeholder="default"></div>
+        <div class="btn-row"><button class="btn btn-ghost" onclick="app.showView('login')">← Cancel</button><button class="btn btn-gold" onclick="app.setupNext(2)">Next →</button></div>
       </div>
-      <div class="form-group"><label class="form-label">Jurisdiction (optional)</label><input id="setupJurisdiction" placeholder="California, US"></div>
-      <div class="form-group"><label class="form-label">Owner ID (optional)</label><input id="setupOwnerId" placeholder="default"></div>
-      <div class="btn-row" style="justify-content:center">
-        <button class="btn btn-gold" onclick="app.configureWill()">Create Will & Generate Tokens</button>
-        <button class="btn btn-ghost" onclick="app.showView('login')">← Back</button>
+
+      <!-- Step 2: Beneficiaries -->
+      <div class="setup-step" id="setup-2">
+        <span class="card-label">WAKE Will — Beneficiaries</span>
+        <h2 style="font-family:var(--font-display);font-size:32px;margin-bottom:8px">Who gets <em style="color:var(--gold);font-style:italic">access</em>?</h2>
+        <p style="color:var(--text-dim);margin-bottom:24px">Define who receives access to your agent's knowledge, and at what tier.</p>
+        <div class="form-group"><label class="form-label">Executor — Full Operational Access</label><input id="setupExecutor" placeholder="Jordan Chen (spouse)"></div>
+        <div class="form-group"><label class="form-label">Beneficiary — Scoped Query Access (optional)</label><input id="setupBeneficiary" placeholder="Sam Chen (sibling)"></div>
+        <div class="form-group"><label class="form-label">Memorial — Curated Read-Only (optional)</label><input id="setupMemorial" placeholder="Riley Chen (child)"></div>
+        <div class="form-group"><label class="form-label">Death Event Verifier</label><input id="setupVerifier" placeholder="Jordan Chen (spouse)"></div>
+        <div class="btn-row"><button class="btn btn-ghost" onclick="app.setupNext(1)">← Back</button><button class="btn btn-gold" onclick="app.setupNext(3)">Next →</button></div>
       </div>
+
+      <!-- Step 3: Protections -->
+      <div class="setup-step" id="setup-3">
+        <span class="card-label">WAKE Will — Protections</span>
+        <h2 style="font-family:var(--font-display);font-size:32px;margin-bottom:8px">What stays <em style="color:var(--gold);font-style:italic">private</em>?</h2>
+        <p style="color:var(--text-dim);margin-bottom:24px">Choose categories of memory your agent should purge before any handoff occurs.</p>
+        <div class="form-group"><label class="form-label">Redaction Rules</label>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <label style="display:flex;align-items:center;gap:10px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="redactMedical" checked style="accent-color:var(--gold)"> Medical conversations</label>
+            <label style="display:flex;align-items:center;gap:10px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="redactDating" style="accent-color:var(--gold)"> Dating & romantic context</label>
+            <label style="display:flex;align-items:center;gap:10px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="redactFinancial" style="accent-color:var(--gold)"> Private financial discussions</label>
+            <label style="display:flex;align-items:center;gap:10px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="redactTherapy" checked style="accent-color:var(--gold)"> Therapy & mental health</label>
+            <label style="display:flex;align-items:center;gap:10px;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="redactCreative" style="accent-color:var(--gold)"> Unpublished creative work</label>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">Grace Period Duration</label>
+          <select id="setupGrace"><option value="30">30 days</option><option value="90" selected>90 days</option><option value="180">180 days</option><option value="365">1 year</option></select>
+        </div>
+        <div class="btn-row"><button class="btn btn-ghost" onclick="app.setupNext(2)">← Back</button><button class="btn btn-gold" onclick="app.setupNext(4)">Next →</button></div>
+      </div>
+
+      <!-- Step 4: Final Acts -->
+      <div class="setup-step" id="setup-4">
+        <span class="card-label">WAKE Will — Final Acts</span>
+        <h2 style="font-family:var(--font-display);font-size:32px;margin-bottom:8px">Your last <em style="color:var(--gold);font-style:italic">words</em></h2>
+        <p style="color:var(--text-dim);margin-bottom:24px">A message your agent will deliver to your executor after your death is confirmed.</p>
+        <div class="form-group"><label class="form-label">Final Message to Executor</label><textarea id="setupFinalMessage" placeholder="Write something. Your agent will deliver this when the time comes." style="min-height:100px"></textarea></div>
+        <div class="form-group"><label class="form-label">Terminal State</label>
+          <select id="setupTerminal"><option value="archive">Archive — Preserve everything, encrypted</option><option value="distill" selected>Distill — Extract knowledge, purge memory</option><option value="delete">Delete — Complete termination</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Jurisdiction (optional)</label><input id="setupJurisdiction" placeholder="California, US"></div>
+        <div class="btn-row"><button class="btn btn-ghost" onclick="app.setupNext(3)">← Back</button><button class="btn btn-gold" onclick="app.configureWill()">Seal the WAKE Will →</button></div>
+      </div>
+
     </div>
   </div>
 

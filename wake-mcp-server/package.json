@@ -1,6 +1,6 @@
 {
   "name": "wake-mcp-server",
-"version": "2.1.0",
+"version": "2.2.0",
   "description": "WAKE Protocol. A post-mortem protocol for AI agents.",
   "type": "module",
   "main": "build/index.js",
