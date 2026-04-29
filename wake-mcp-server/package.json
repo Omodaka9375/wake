@@ -1,6 +1,7 @@
 {
-  "name": "wake-mcp-server",
+"name": "wake-mcp-server",
 "version": "2.2.0",
+  "mcpName": "io.github.omodaka9375/wake",
   "description": "WAKE Protocol. A post-mortem protocol for AI agents.",
   "type": "module",
   "main": "build/index.js",

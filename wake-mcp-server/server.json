@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.omodaka9375/wake-mcp-server",
+"name": "io.github.omodaka9375/wake",
   "description": "WAKE Protocol. A post-mortem protocol for AI agents. Configures succession plans with tiered access, encrypted Black Box, final messages, time-locks, inter-agent handoff, legal compliance, and no-resurrection directives.",
   "title": "WAKE Protocol",
   "websiteUrl": "https://omodaka9375.github.io/wake/",
